@@ -18,15 +18,6 @@
     --success: #5fd47e;
     --text: #e0e0e0;
     --muted: #666;
-
-    --c0: #f5a623;
-    --c1: #e8d5a3;
-    --c2: #7eb8d4;
-    --c3: #b39ddb;
-    --c4: #81c784;
-    --c5: #ff8a65;
-    --c6: #f06292;
-    --c7: #4db6ac;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -215,6 +206,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    flex-shrink: 0;
   }
 
   .class-btn {
@@ -488,7 +480,7 @@
 </div>
 
 <div id="help-row">
-  <span><span class="kbd">1–8</span> select class</span>
+  <span><span class="kbd">1–9,0,Q</span> select class</span>
   <span><span class="kbd">Del</span> delete selected</span>
   <span><span class="kbd">Esc</span> deselect</span>
   <span><span class="kbd">←/→</span> prev/next page</span>
@@ -577,19 +569,26 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 const CLASSES = [
-  { id: 0, name: 'journal_name',       color: '#f5a623', key: '1', pesp: 'journal_name' },
-  { id: 1, name: 'article_title',      color: '#e8d5a3', key: '2', pesp: 'title' },
-  { id: 2, name: 'author_name',        color: '#7eb8d4', key: '3', pesp: 'author_name' },
-  { id: 3, name: 'page_number',        color: '#b39ddb', key: '4', pesp: 'page_number' },
-  { id: 4, name: 'text_block',         color: '#81c784', key: '5', pesp: 'textblock' },
-  { id: 5, name: 'image',              color: '#ff8a65', key: '6', pesp: 'image' },
-  { id: 6, name: 'mixed_text',         color: '#f06292', key: '7', pesp: 'mixedtext' },
-  { id: 7, name: 'decorative_element', color: '#4db6ac', key: '8', pesp: 'decorative_element' },
+  { id: 0,  name: 'journal_name',        color: '#f5a623', key: '1', pesp: 'journal_name' },
+  { id: 1,  name: 'article_title',       color: '#e8d5a3', key: '2', pesp: 'title' },
+  { id: 2,  name: 'author_name',         color: '#7eb8d4', key: '3', pesp: 'author_name' },
+  { id: 3,  name: 'page_number',         color: '#b39ddb', key: '4', pesp: 'page_number' },
+  { id: 4,  name: 'text_block',          color: '#81c784', key: '5', pesp: 'textblock' },
+  { id: 5,  name: 'image',               color: '#ff8a65', key: '6', pesp: 'image' },
+  { id: 6,  name: 'mixed_text',          color: '#f06292', key: '7', pesp: 'mixedtext' },
+  { id: 7,  name: 'decorative_element',  color: '#4db6ac', key: '8', pesp: 'decorative_element' },
+  { id: 8,  name: 'cover',               color: '#a1887f', key: '9', pesp: 'cover' },
+  { id: 9,  name: 'image_caption',       color: '#d4e157', key: '0', pesp: 'caption' },
+  { id: 10, name: 'artist_photographer', color: '#7986cb', key: 'q', pesp: 'artist' },
 ];
 
-let pages = [];          
+// Keyboard shortcuts are derived from CLASSES — adding a class only needs a line above.
+// Avoid s / + / - / = in the `key` fields; those are taken by save and zoom.
+const KEYMAP = Object.fromEntries(CLASSES.map(c => [c.key.toLowerCase(), c.id]));
+
+let pages = [];
 let currentPageIdx = -1;
-let annotations = [];    
+let annotations = [];
 let selectedAnnoId = null;
 let activeClass = 0;
 let zoom = 1.0;
@@ -599,8 +598,8 @@ let drawing = false;
 let drawStart = {x:0, y:0};
 let canvasW = 0, canvasH = 0;
 
-let dataStore = {};  
-let metaStore = {};    
+let dataStore = {};
+let metaStore = {};
 
 buildClassSelector();
 renderFileList();
@@ -612,7 +611,7 @@ function buildClassSelector() {
     const btn = document.createElement('button');
     btn.className = 'class-btn' + (c.id === activeClass ? ' selected' : '');
     btn.style.setProperty('--class-color', c.color);
-    btn.innerHTML = `<span class="class-dot" style="background:${c.color}"></span>${c.name}<span class="class-key">${c.key}</span>`;
+    btn.innerHTML = `<span class="class-dot" style="background:${c.color}"></span>${c.name}<span class="class-key">${c.key.toUpperCase()}</span>`;
     btn.onclick = () => selectClass(c.id);
     el.appendChild(btn);
   });
@@ -1096,8 +1095,10 @@ function setStatus(msg) {
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-  if (e.key >= '1' && e.key <= '8') {
-    selectClass(parseInt(e.key) - 1);
+  const k = e.key.toLowerCase();
+
+  if (KEYMAP[k] !== undefined) {
+    selectClass(KEYMAP[k]);
   } else if (e.key === 'Delete' || e.key === 'Backspace') {
     deleteSelected();
   } else if (e.key === 'Escape') {
@@ -1112,7 +1113,7 @@ document.addEventListener('keydown', e => {
     setZoom(zoom + 0.1);
   } else if (e.key === '-') {
     setZoom(zoom - 0.1);
-  } else if (e.key === 's' || e.key === 'S') {
+  } else if (k === 's') {
     savePage();
     setStatus('Saved');
   }
